@@ -35,6 +35,11 @@ coverage.xml
 pip-wheel-metadata/
 .python-version
 
+# Local environment / secrets
+# Real credentials live in `.env`; `.env.example` is the committed template.
+.env
+!.env.example
+
 # Spek runtime artefacts
 # Generated inside any working directory the agent is run against.
 # .spek/ at the repo root would be left over from a local `spek build` smoke

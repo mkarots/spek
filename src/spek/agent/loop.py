@@ -44,7 +44,7 @@ from spek.tools import (
 
 log = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "evals-anthropic/claude-sonnet-4-6"
+DEFAULT_MODEL = "evals-anthropic/claude-sonnet-4-7"
 DEFAULT_MAX_TOKENS = 4096
 READY_TOKEN = "READY"
 NUDGE_AFTER_IDLE_TURNS = 3

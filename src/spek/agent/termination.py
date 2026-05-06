@@ -63,6 +63,46 @@ def _bash_exit_code(text: str) -> int | None:
         return None
 
 
+# Shell separators that introduce a new subcommand. We split on these to
+# recover the individual commands the agent actually invoked, so wrappers
+# like `cd /work && <cmd>` or `<cmd>; echo "EXIT:$?"` still match.
+_SUBCMD_SEPARATOR_RE = re.compile(r"&&|\|\||;|\|")
+# Characters that may legally follow the configured command in a subcommand
+# without changing what is being run: end-of-string, whitespace, or a
+# redirection token (`>`, `<`, `&` as in `2>&1`). This rejects look-alikes
+# like `uv build-extras` while accepting `uv build`, `uv build 2>&1`, etc.
+_TRAILING_BOUNDARY_RE = re.compile(r"^(?:\s|[<>&]|$)")
+
+
+def _normalize(s: str) -> str:
+    """Collapse runs of whitespace so trivial spacing differences don't matter."""
+    return " ".join(s.split())
+
+
+def _command_matches(actual: str, configured: str) -> bool:
+    """Return True if `actual` (the bash command the agent ran) invokes
+    `configured` (the configured build/test command).
+
+    We split `actual` on shell separators and check whether any of the
+    resulting subcommands begins with `configured` followed by a legal
+    boundary (whitespace, redirection, or end-of-string). This accepts
+    common, harmless wrappers the agent likes to add — `cd /work && ...`,
+    `... 2>&1`, `...; echo "EXIT:$?"` — while still rejecting unrelated
+    commands and prefix-matches like `uv build-extras`.
+    """
+    cfg_norm = _normalize(configured)
+    if not cfg_norm:
+        return False
+    for raw in _SUBCMD_SEPARATOR_RE.split(actual):
+        sub = _normalize(raw)
+        if not sub.startswith(cfg_norm):
+            continue
+        rest = sub[len(cfg_norm) :]
+        if _TRAILING_BOUNDARY_RE.match(rest):
+            return True
+    return False
+
+
 def check(
     journal: Journal,
     cfg: CommandConfig,
@@ -109,9 +149,9 @@ def check(
     last_test: tuple[str, str] | None = None
     last_build: tuple[str, str] | None = None
     for cmd, text in pairs:
-        if last_test is None and cmd.strip() == cfg.test_command.strip():
+        if last_test is None and _command_matches(cmd, cfg.test_command):
             last_test = (cmd, text)
-        if last_build is None and cmd.strip() == cfg.build_command.strip():
+        if last_build is None and _command_matches(cmd, cfg.build_command):
             last_build = (cmd, text)
         if last_test and last_build:
             break

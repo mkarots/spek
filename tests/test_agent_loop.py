@@ -286,17 +286,22 @@ def test_clarify_assistant_end_turn_does_not_send_assistant_prefill(tmp_path: Pa
 
     client = FakeAnthropicClient(
         responses=[
-            # 1st clarify turn: end_turn, no READY, no tool. Loop must nudge.
+            # Clarify turn 1: end_turn, no READY, no tool. Loop must nudge
+            # (and inject a user continuation before re-entering create()).
             text_response("Thinking out loud, no question yet."),
-            # 2nd clarify turn: end_turn with READY -> phase done.
-            text_response("Got it. READY"),
-            # Plan + execute happy path.
+            # Clarify turn 2: end_turn with READY on its own line -> phase done.
+            # The READY token must be on its own line; `_has_ready_token` does
+            # `line.strip() == "READY"` per-line, so "Got it. READY" wouldn't match.
+            text_response("Got it.\nREADY"),
+            # Plan: write the plan, then end the turn so is_plan_complete fires.
             tool_use_response(
                 "write_file",
                 {"path": ".spek/plan.md", "content": PLAN_BODY},
                 tool_use_id="p1",
             ),
             text_response("Plan written."),
+            # Execute: run build, run tests, then end the turn so termination
+            # is checked. (is_phase_complete only fires on stop_reason=end_turn.)
             tool_use_response("bash", {"command": cfg.build_command}, tool_use_id="b1"),
             tool_use_response("bash", {"command": cfg.test_command}, tool_use_id="t1"),
             text_response("Done."),

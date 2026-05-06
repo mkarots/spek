@@ -105,7 +105,6 @@ def test_uses_most_recent_test_run_not_an_old_failing_one(tmp_path: Path) -> Non
     cfg = _cfg()
     _record_bash(j, cfg.build_command, 0)
     _record_bash(j, cfg.test_command, 1, stdout="==== 1 failed in 0.01s ====\n")
-    # Agent fixed the bug and re-ran build+tests, both green.
     _record_bash(j, cfg.build_command, 0)
     _record_bash(j, cfg.test_command, 0, stdout="==== 5 passed in 0.20s ====\n")
 
@@ -126,3 +125,72 @@ def test_irrelevant_bash_commands_are_ignored(tmp_path: Path) -> None:
 
     assert status.done is True
     assert status.test_count == 2
+
+
+# ---------------------------------------------------------------------------
+# Command-matching tolerance: the agent may legitimately wrap the configured
+# build/test command with `cd <workdir> && ...`, output redirection, and a
+# trailing `; echo "EXIT:$?"` for its own sanity checks. The matcher must
+# still recognise these as invocations of the configured command, otherwise
+# the loop never terminates even when the project is green.
+# ---------------------------------------------------------------------------
+
+
+def test_done_when_test_command_is_wrapped_with_cd_and_echo(tmp_path: Path) -> None:
+    j = _journal(tmp_path)
+    cfg = _cfg()
+    _record_bash(j, f'cd /work && {cfg.build_command} 2>&1; echo "BUILD_EXIT:$?"', 0)
+    _record_bash(
+        j,
+        f'cd /work && {cfg.test_command} 2>&1; echo "TEST_EXIT:$?"',
+        0,
+        stdout="==== 12 passed in 0.20s ====\nTEST_EXIT:0\n",
+    )
+
+    status = termination.check(j, cfg, PythonProfile())
+
+    assert status.done is True
+    assert status.test_count == 12
+
+
+def test_done_when_test_command_has_only_redirect(tmp_path: Path) -> None:
+    j = _journal(tmp_path)
+    cfg = _cfg()
+    _record_bash(j, cfg.build_command, 0)
+    _record_bash(
+        j,
+        f"{cfg.test_command} 2>&1",
+        0,
+        stdout="==== 4 passed in 0.10s ====\n",
+    )
+
+    status = termination.check(j, cfg, PythonProfile())
+
+    assert status.done is True
+    assert status.test_count == 4
+
+
+def test_lookalike_command_does_not_match(tmp_path: Path) -> None:
+    """`uv build-extras` is NOT a `uv build` invocation."""
+    j = _journal(tmp_path)
+    cfg = _cfg()
+    _record_bash(j, "uv build-extras", 0)
+    _record_bash(j, cfg.test_command, 0, stdout="==== 1 passed in 0.01s ====\n")
+
+    status = termination.check(j, cfg, PythonProfile())
+
+    assert status.done is False
+    assert "no recent build" in status.reason
+
+
+def test_command_inside_string_literal_does_not_match(tmp_path: Path) -> None:
+    """An echoed string containing the test command verbatim must not match."""
+    j = _journal(tmp_path)
+    cfg = _cfg()
+    _record_bash(j, cfg.build_command, 0)
+    _record_bash(j, f"echo 'about to run {cfg.test_command}'", 0, stdout="...\n")
+
+    status = termination.check(j, cfg, PythonProfile())
+
+    assert status.done is False
+    assert "no recent test" in status.reason
