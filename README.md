@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mkarots/spek/main/assets/spek.png"
+       alt="spek logo"
+       width="600">
+</p>
+
 # spek
 
 > Turn a `SPEC.md` into an installable, tested Python package.

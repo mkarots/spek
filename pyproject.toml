@@ -11,6 +11,7 @@ build-backend = "hatchling.build"
 name = "spek-cli"
 version = "0.1.0"
 description = "Agentic spec-to-code builder: turn a SPEC.md into an installable, tested package."
+readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Michael Karotsieris", email = "michael.karotsieris@gmail.com" }]
