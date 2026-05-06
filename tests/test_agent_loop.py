@@ -208,9 +208,7 @@ def test_step_cap_aborts_with_blocked_result(tmp_path: Path) -> None:
     # script repeated tool_use calls that the cap counts.
     responses = []
     for i in range(50):
-        responses.append(
-            tool_use_response("read_file", {"path": "SPEC.md"}, tool_use_id=f"r{i}")
-        )
+        responses.append(tool_use_response("read_file", {"path": "SPEC.md"}, tool_use_id=f"r{i}"))
     client = FakeAnthropicClient(responses=responses)
     box.files["SPEC.md"] = SPEC
 

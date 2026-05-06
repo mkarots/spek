@@ -10,7 +10,7 @@ and verify the prompt format.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import IO, Any
 
 from spek.tools.base import Tool, ToolContext, ToolError
 
@@ -54,16 +54,16 @@ def _format_prompt(question: str, why_blocked: str, how_to_resolve: str) -> str:
     )
 
 
-def _read_answer(stdin: Any) -> str:
+def _read_answer(stdin: IO[str]) -> str:
     """Read a single line from `stdin`; if empty, fall back to read-until-EOF."""
-    line = stdin.readline()
+    line: str = stdin.readline()
     if not line:
         return ""
     line = line.rstrip("\n")
     if line:
         return line
     # Empty first line: treat as "use multi-line mode".
-    rest = stdin.read()
+    rest: str = stdin.read()
     return rest.rstrip("\n")
 
 

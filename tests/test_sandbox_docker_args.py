@@ -78,9 +78,7 @@ def test_start_container_chowns_cache_volume(
     box = DockerSandbox(tmp_path / "work", image="python:3.12-slim", setup_cmd=None)
     box.__enter__()
 
-    chown_calls = [
-        c for c in fake_subprocess if len(c) >= 4 and c[1] == "exec" and "chown" in c
-    ]
+    chown_calls = [c for c in fake_subprocess if len(c) >= 4 and c[1] == "exec" and "chown" in c]
     assert chown_calls, "must chown the cache volume to host UID after container start"
     assert CACHE_DIR in chown_calls[0]
 

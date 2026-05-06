@@ -3,12 +3,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "spek"
+# PyPI distribution name (`pip install spek-cli`). The plain `spek` name was
+# already taken on PyPI by another package, so we publish under
+# `spek-cli`. The Python import name stays `spek` (see [tool.hatch ... wheel]
+# below) and the CLI binary stays `spek` (see [project.scripts]); the only
+# thing that changes for users is the install command.
+name = "spek-cli"
 version = "0.1.0"
 description = "Agentic spec-to-code builder: turn a SPEC.md into an installable, tested package."
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "spek" }]
+authors = [{ name = "Michael Karotsieris", email = "michael.karotsieris@gmail.com" }]
 dependencies = [
   "anthropic>=0.39",
   "pydantic>=2.6",
@@ -23,6 +28,11 @@ dev = [
   "black>=24.0",
   "mypy>=1.10",
 ]
+
+[project.urls]
+Homepage = "https://github.com/mkarots/spek"
+Repository = "https://github.com/mkarots/spek"
+Issues = "https://github.com/mkarots/spek/issues"
 
 [project.scripts]
 spek = "spek.cli:main"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from types import TracebackType
 
 # All sandboxes mount the host workdir at this path inside the container.
 # Tools refer to paths relative to (or rooted at) this directory; absolute
@@ -60,4 +61,9 @@ class Sandbox(ABC):
     def __enter__(self) -> Sandbox: ...
 
     @abstractmethod
-    def __exit__(self, exc_type, exc, tb) -> None: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None: ...

@@ -13,12 +13,12 @@ journal and continue inside the most recent phase marker.
 
 from __future__ import annotations
 
-import io
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import IO, Any, Protocol, cast
 
 from spek.agent import planning, prompts, termination
 from spek.agent.reporter import (
@@ -43,6 +43,13 @@ from spek.tools import (
 )
 
 log = logging.getLogger(__name__)
+
+# Phase-loop callback types. `IsPhaseComplete` is called after every
+# end_turn assistant turn and decides whether the phase is done; `OnIdleTurn`
+# may return a phase-specific user message to nudge the model back on track
+# (or `None` to fall back to the generic continuation prompt).
+IsPhaseComplete = Callable[[list[dict[str, Any]], int], bool]
+OnIdleTurn = Callable[[list[dict[str, Any]], int], "dict[str, Any] | None"]
 
 DEFAULT_MODEL = "evals-anthropic/claude-sonnet-4-7"
 DEFAULT_MAX_TOKENS = 4096
@@ -102,11 +109,15 @@ class AnthropicLLMClient:
         tools: list[dict[str, Any]],
         max_tokens: int,
     ) -> LLMResponse:
+        # The Anthropic SDK uses TypedDict aliases (MessageParam, ToolUnionParam)
+        # for these fields. We persist plain dicts in the journal so they stay
+        # JSON-serialisable and provider-agnostic; cast at the call boundary
+        # rather than refactor the journal to know about SDK types.
         msg = self._client.messages.create(
             model=model,
             system=system,
-            messages=messages,
-            tools=tools,
+            messages=cast(Any, messages),
+            tools=cast(Any, tools),
             max_tokens=max_tokens,
         )
         # Convert SDK content blocks to plain dicts so the journal stays
@@ -189,8 +200,7 @@ _CONTINUATION_PER_PHASE: dict[str, str] = {
         "Otherwise, ask the next clarifying question with the `epistemic` tool."
     ),
     "plan": (
-        "You ended your turn without writing the plan. Call `write_file` with the "
-        "plan body now."
+        "You ended your turn without writing the plan. Call `write_file` with the " "plan body now."
     ),
     "execute": (
         "You ended your turn but the build/test termination criteria are not met "
@@ -259,9 +269,9 @@ def _run_phase_loop(
     ctx: ToolContext,
     allowed: frozenset[str],
     caps: Caps,
-    is_phase_complete,
+    is_phase_complete: IsPhaseComplete,
     reporter: Reporter,
-    on_idle_turn=None,
+    on_idle_turn: OnIdleTurn | None = None,
     max_turns: int | None = None,
 ) -> int:
     """Drive one phase to completion. Returns the number of LLM turns it took.
@@ -360,8 +370,8 @@ def run(
     confirm_plan: bool = False,
     max_steps: int = 120,
     max_seconds: int = 30 * 60,
-    stdin: io.TextIOBase | None = None,
-    stdout: io.TextIOBase | None = None,
+    stdin: IO[str] | None = None,
+    stdout: IO[str] | None = None,
     reporter: Reporter | None = None,
 ) -> AgentResult:
     """Run the three-phase agent loop. Returns an `AgentResult`."""
