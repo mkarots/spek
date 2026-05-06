@@ -1,0 +1,44 @@
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+.installed.cfg
+*.manifest
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test / coverage / type-check caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.tox/
+.nox/
+
+# Build / install metadata
+pip-wheel-metadata/
+.python-version
+
+# Spek runtime artefacts
+# Generated inside any working directory the agent is run against.
+# .spek/ at the repo root would be left over from a local `spek build` smoke
+# test and is never something we want to commit. Specific project example
+# workdirs are also ignored.
+.spek/
+/tmp-workdir/
