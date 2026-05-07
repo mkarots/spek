@@ -14,7 +14,7 @@ there's a working Python package on disk that builds and passes its own
 tests.
 
 For the design rationale and a worked example end-to-end, see
-[`BLOG.md`](./BLOG.md).
+[Here is how I built a simple coding agent](https://mkarots.github.io/blog/building-a-simple-coding-agent/).
 
 ## Requirements
 
