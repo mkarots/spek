@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 # below) and the CLI binary stays `spek` (see [project.scripts]); the only
 # thing that changes for users is the install command.
 name = "spek-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "Agentic spec-to-code builder: turn a SPEC.md into an installable, tested package."
 readme = "README.md"
 requires-python = ">=3.11"
